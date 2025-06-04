@@ -1,3 +1,14 @@
+# ORB-SLAM2 超详细注释
+
+![DEMO](https://github.com/electech6/ORB_SLAM2_detailed_comments/blob/master/demo.gif)
+
+独家视频课程《ORB-SLAM2精讲：原理推导+逐行代码分析》！ [点击进入官网](https://cvlife.net/)
+
+点击进入 [小六的机器人SLAM学习圈](https://mp.weixin.qq.com/s?__biz=MzIxOTczOTM4NA==&mid=2247567299&idx=1&sn=2d6b673b6d5e396bd87ec2a28cd3d27d&chksm=97d52254a0a2ab42ff833b5fa733f2213a1ad1ec8ebdb199d96c237aa4cb21fe8e05cc77db8a#rd)，4500+人都在这里交流！
+
+----
+
+
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 

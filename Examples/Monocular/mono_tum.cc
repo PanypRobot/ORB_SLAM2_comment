@@ -27,34 +27,49 @@
 #include<opencv2/core/core.hpp>
 
 #include<System.h>
-
+#include<unistd.h>
 using namespace std;
+
 
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
 
 int main(int argc, char **argv)
 {
+    //运行指令 xxx/mono_tum xxx/ORBvoc.txt xxx.yaml xxx/rgbd_dataset
+    //argc = 4
+    //程序名 mono_tum, mono模式下跑tum数据集
+    //argv[1] 字典路径
+    //argv[2] 配置文件路径
+    //argv[3] 图片数据集文件夹路径
+
     if(argc != 4)
     {
         cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
     }
 
-    // Retrieve paths to images
+    // 检索图片路径
+    // strFile 图片数据集文件夹路径下的"/rgb.txt"
+    // vstrImageFilenames 图片名
+    // vTimestamps 图片时间戳
+    // 图片名和时间戳由LoadImages函数得到
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
     string strFile = string(argv[3])+"/rgb.txt";
-    LoadImages(strFile, vstrImageFilenames, vTimestamps);
+    LoadImages(strFile, vstrImageFilenames, vTimestamps); // 从数据集strFile从取出图片名和时间戳
 
-    int nImages = vstrImageFilenames.size();
+    int nImages = vstrImageFilenames.size(); // nImages为图片数量
 
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    // 创建SLAM系统和几个线程
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+    //参数1: 字典路径
+    //参数2: 配置文件路径
+    //参数3: 传感器类型
+    //参数4: 开启可视化界面
 
-    // Vector for tracking time statistics
-    vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
+    vector<float> vTimesTrack; //用于记录跟踪时间的vector
+    vTimesTrack.resize(nImages); //vTimesTrack的大小为图片数量
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
@@ -62,12 +77,13 @@ int main(int argc, char **argv)
 
     // Main loop
     cv::Mat im;
-    for(int ni=0; ni<nImages; ni++)
+    for(int ni=0; ni<nImages; ni++) //遍历每个图片
     {
-        // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
+        // 从文件读取图片, im是每个图片
+        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED); //以原始图像读取(包括alpha通道)
+        double tframe = vTimestamps[ni]; //每个tracking time
 
+        // 该次图片读取失败
         if(im.empty())
         {
             cerr << endl << "Failed to load image at: "
@@ -75,6 +91,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
+// C11的系统时钟定义区别
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
@@ -82,6 +99,7 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the image to the SLAM system
+        // 将图片传给SLAM系统, 参数1为图片, 参数2为时间戳
         SLAM.TrackMonocular(im,tframe);
 
 #ifdef COMPILEDWITHC11
@@ -89,9 +107,10 @@ int main(int argc, char **argv)
 #else
         std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
 #endif
-
+        //计算SLAM系统处理该次图片的duration系统时间ttrack
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
+        //将跟踪时间ttrack记录进vTimesTrack
         vTimesTrack[ni]=ttrack;
 
         // Wait to load the next frame
@@ -105,12 +124,13 @@ int main(int argc, char **argv)
             usleep((T-ttrack)*1e6);
     }
 
-    // Stop all threads
+    // 关闭SLAM系统,关闭所有线程
     SLAM.Shutdown();
 
-    // Tracking time statistics
+    // 跟踪时间统计
     sort(vTimesTrack.begin(),vTimesTrack.end());
-    float totaltime = 0;
+    // totaltime是处理完所有图片的总的跟踪时间
+    float totaltime = 0; 
     for(int ni=0; ni<nImages; ni++)
     {
         totaltime+=vTimesTrack[ni];
@@ -119,18 +139,26 @@ int main(int argc, char **argv)
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
-    // Save camera trajectory
+    // 保存相机轨迹
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
 
     return 0;
 }
 
+/**
+ * @brief 导入图片
+ * 
+ * @param[in] strFile                   读入的文件名称
+ * @param[in&out] vstrImageFilenames    彩色图片名称
+ * @param[in&out] vTimestamps           记录时间戳
+ */
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
 {
     ifstream f;
     f.open(strFile.c_str());
 
     // skip first three lines
+    // 前三行是注释，跳过
     string s0;
     getline(f,s0);
     getline(f,s0);
@@ -147,9 +175,9 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
             double t;
             string sRGB;
             ss >> t;
-            vTimestamps.push_back(t);
+            vTimestamps.push_back(t); // 时间戳
             ss >> sRGB;
-            vstrImageFilenames.push_back(sRGB);
+            vstrImageFilenames.push_back(sRGB); // 文件名
         }
     }
 }

@@ -263,7 +263,7 @@ bool EdgeSE3ProjectXYZOnlyPose::write(std::ostream& os) const {
 }
 
 
-void EdgeSE3ProjectXYZOnlyPose::linearizeOplus() {
+void EdgeSE3ProjectXYZOnlyPose:: linearizeOplus() {
   VertexSE3Expmap * vi = static_cast<VertexSE3Expmap *>(_vertices[0]);
   Vector3d xyz_trans = vi->estimate().map(Xw);
 
